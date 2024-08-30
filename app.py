@@ -5,8 +5,6 @@ from resources.hotel import Hoteis, Hotel, HoteisCadastrar
 from resources.user import Users, User, UserRegistro, UserLogin, UserLogout
 from blacklist import BLACKLIST
 
-BLACKLIST=set()
-
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///banco.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -25,7 +23,7 @@ def verifica_blacklist(self, token):
 
 @jwt.revoked_token_loader
 def token_de_acesso_invalidado(jwt_header, jwt_payload):
-    return {'message': 'token de acesso invalidado'}, 401
+    return {'message': 'usuario deslogado'}, 401
 
 api.add_resource(Hoteis, '/hoteis')
 api.add_resource(HoteisCadastrar, '/cadastrar-hoteis')
