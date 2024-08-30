@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_restful import  Api
 from flask_jwt_extended import JWTManager
-from resources.hotel import Hoteis, Hotel
+from resources.hotel import Hoteis, Hotel, HoteisCadastrar
 from resources.user import Users, User, UserRegistro, UserLogin, UserLogout
 from blacklist import BLACKLIST
 
@@ -26,6 +26,7 @@ def token_de_acesso_invalidado(jwt_header, jwt_payload):
     return {'message': 'token de acesso invalidado'}, 401
 
 api.add_resource(Hoteis, '/hoteis')
+api.add_resource(HoteisCadastrar, '/cadastrar-hoteis')
 api.add_resource(Hotel, '/hoteis/<hotel_id>')
 api.add_resource(Users, '/users')
 api.add_resource(User, '/users/<user_id>')

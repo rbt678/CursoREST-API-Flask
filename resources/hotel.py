@@ -1,37 +1,39 @@
 from flask_restful import Resource, reqparse
 from flask_jwt_extended import jwt_required
+from flask import request
 from models.hotel import HotelModel
 import sqlite3
 
-def normaliza_path_parametros(cidade=None, estrelas_min=0, estrelas_max=5, diaria_min=0, diaria_max=1000, limit=50, offset=0, **dados):
-    parametros = {'estrelas_min': estrelas_min, 'estrelas_max': estrelas_max, 'diaria_min': diaria_min, 'diaria_max': diaria_max, 'limit': limit, 'offset': offset}
-    if cidade:
-        parametros['cidade'] = cidade
-    return parametros
-
-path_parser = reqparse.RequestParser()
-path_parser.add_argument('cidade', type=str)
-path_parser.add_argument('estrelas_min', type=float)
-path_parser.add_argument('estrelas_max', type=float)
-path_parser.add_argument('diaria_min', type=float)
-path_parser.add_argument('diaria_max', type=float)
-path_parser.add_argument('limit', type=int)
-path_parser.add_argument('offset', type=int)
 
 class Hoteis(Resource):
+    path_parser = reqparse.RequestParser()
+    path_parser.add_argument('cidade', type=str)
+    path_parser.add_argument('estrelas_min', type=float)
+    path_parser.add_argument('estrelas_max', type=float)
+    path_parser.add_argument('diaria_min', type=float)
+    path_parser.add_argument('diaria_max', type=float)
+    path_parser.add_argument('limit', type=int)
+    path_parser.add_argument('offset', type=int)
+    
+    def normaliza_path_parametros(cidade=None, estrelas_min=0, estrelas_max=5, diaria_min=0, diaria_max=1000, limit=50, offset=0, **dados):
+        parametros = {'estrelas_min': estrelas_min, 'estrelas_max': estrelas_max, 'diaria_min': diaria_min, 'diaria_max': diaria_max, 'limit': limit, 'offset': offset}
+        if cidade:
+            parametros['cidade'] = cidade
+        return parametros
+    
     def get(self):
-        connection = sqlite3.connect('banco.db')
+        connection = sqlite3.connect('instance/banco.db')
+        connection.row_factory = sqlite3.Row
         cursor = connection.cursor()
-        
-        dados = path_parser.parse_args()
+        dados = Hoteis.path_parser.parse_args()
         dados_validos = {chave: dados[chave] for chave in dados if dados[chave] is not None}
-        parametros_normalizados = normaliza_path_parametros(**dados_validos)
+        parametros_normalizados = Hoteis.normaliza_path_parametros(**dados_validos)
         consulta = f'''SELECT * FROM hoteis WHERE {'cidade = ? AND ' if parametros_normalizados.get('cidade') else ''}estrelas >= ? AND estrelas <= ? AND diaria >= ? AND diaria <= ? LIMIT ? OFFSET ?'''
-        tupla_consulta = (parametros_normalizados.get('cidade'),) if parametros_normalizados.get('cidade') else () + (parametros_normalizados['estrelas_min'], parametros_normalizados['estrelas_max'], parametros_normalizados['diaria_min'], parametros_normalizados['diaria_max'], parametros_normalizados['limit'], parametros_normalizados['offset'])
-        # resultado = cursor.execute(consulta, tupla_consulta)
-        resultado = cursor.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
-        print(resultado)
-        return {'hoteis': [hotel.json() for hotel in HotelModel.query.all()]}
+        tupla_consulta = ((parametros_normalizados.get('cidade'),) if parametros_normalizados.get('cidade')else()) +(parametros_normalizados['estrelas_min'], parametros_normalizados['estrelas_max'], parametros_normalizados['diaria_min'], parametros_normalizados['diaria_max'], parametros_normalizados['limit'], parametros_normalizados['offset'])
+        print('TESTE')
+        print(tupla_consulta)
+        resultado = cursor.execute(consulta, tupla_consulta)
+        return {'hoteis': [dict(hotel) for hotel in resultado.fetchall()]}
 
 
 class Hotel(Resource):
@@ -96,3 +98,29 @@ class Hotel(Resource):
                 return {'message': 'ocorreu um erro interno'}, 500
             return Hotel.mensagem_retorno(5, hotel.json())
         return Hotel.mensagem_retorno(1)
+    
+class HoteisCadastrar(Resource):
+    def post(self):
+        # Acessando o corpo da requisição diretamente como JSON
+        data = request.get_json()
+
+        # Verificando se o dado é uma lista de dicionários
+        if isinstance(data, list):
+            for item in data:
+                if isinstance(item, dict):
+                    # Processa cada dicionário aqui
+                    hotel_id = item.get('hotel_id')
+                    nome = item.get('nome')
+                    estrelas = item.get('estrelas')
+                    diaria = item.get('diaria')
+                    cidade = item.get('cidade')   
+                    
+                    hotel = HotelModel(hotel_id, nome, estrelas, diaria, cidade)
+                    hotel.save_hotel()
+                else:
+                    return {"error": "Each item in the list must be a dictionary"}, 400
+            return {"message": "Data processed successfully"}, 200
+        else:
+            return {"error": "Request body must be a list of dictionaries"}, 400
+            
+        
