@@ -5,6 +5,8 @@ from resources.hotel import Hoteis, Hotel, HoteisCadastrar
 from resources.user import Users, User, UserRegistro, UserLogin, UserLogout
 from blacklist import BLACKLIST
 
+BLACKLIST=set()
+
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///banco.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
