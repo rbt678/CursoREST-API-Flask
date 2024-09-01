@@ -2,7 +2,7 @@ from flask import Flask
 from flask_restful import  Api
 from flask_jwt_extended import JWTManager
 from resources.hotel import Hoteis, Hotel, HoteisCadastrar
-from resources.user import Users, User, UserRegistro, UserLogin, UserLogout
+from resources.user import Users, User, UserRegistro, UserLogin, UserLogout, UserConfirmar
 from blacklist import BLACKLIST
 
 app = Flask(__name__)
@@ -33,6 +33,7 @@ api.add_resource(User, '/users/<user_id>')
 api.add_resource(UserRegistro, '/cadastro')
 api.add_resource(UserLogin, '/login')
 api.add_resource(UserLogout, '/logout')
+api.add_resource(UserConfirmar, '/confirmacao/<user_id>')
 
 if __name__ == '__main__':
     from sql_alchemy import banco

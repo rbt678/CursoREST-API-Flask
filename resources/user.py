@@ -21,7 +21,15 @@ class User(Resource):
             return {'message': 'usuario atualizado com sucesso', 'novo_usuario': usuario}, 200
         if return_code == 5:
             return {'message': 'usuario removido com sucesso', 'usuario_removido': usuario}, 200
-        
+        if return_code == 6:
+            return {'message': 'login ou senha invalidos'}, 401
+        if return_code == 7:
+            return {'message': 'usuario não ativado'}, 400
+        if return_code == 8:
+            return {'message': f'usuario {usuario} ativado com sucesso'}, 200
+        if return_code == 9:
+            return {'message': 'deslogado com sucesso'}, 200
+                
         raise 'Codigo de retorno desconhecido'
     
     def get(self, user_id):
@@ -43,6 +51,7 @@ class UserRegistro(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('login', type=str, required=True, help='login do usuario obrigatório')
     parser.add_argument('senha', type=str, required=True, help='senha do usuario obrigatório')
+    parser.add_argument('ativado', type=bool)
     
     def post(self):
         args=UserRegistro.parser.parse_args()
@@ -50,6 +59,7 @@ class UserRegistro(Resource):
             return User.mensagem_retorno(2)
         
         user=UserModel(**args)
+        user.ativado = False
         user.save_user()
         return User.mensagem_retorno(3, user.json())
     
@@ -63,13 +73,27 @@ class UserLogin(Resource):
         user = UserModel.find_by_login(args['login'])
         
         if user and compare_digest(user.senha, args['senha']):
-            return {'token': create_access_token(identity=user.user_id)}, 200
+            if user.ativado:
+                return {'token': create_access_token(identity=user.user_id)}, 200
+            return User.mensagem_retorno(7)
         
-        return {'message': 'login ou senha invalidos'}, 401
+        return User.mensagem_retorno(6)
     
 class UserLogout(Resource):
     @jwt_required()
     def post(self):
         jti = get_jwt()['jti']
         BLACKLIST.add(jti)
-        return {'message': 'deslogado com sucesso'}, 200
+        return User.mensagem_retorno(9)
+    
+class UserConfirmar(Resource):
+    
+    @classmethod
+    def get(cls, user_id):
+        if not (user:=UserModel.find_user(user_id)):
+            return User.mensagem_retorno(1)
+        
+        user.ativado = True
+        user.save_user()
+        return User.mensagem_retorno(8, user.json().get('login'))
+        
